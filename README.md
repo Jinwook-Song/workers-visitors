@@ -74,3 +74,19 @@ export default {
   },
 };
 ```
+
+### KV database
+
+[docs](https://developers.cloudflare.com/workers/wrangler/workers-kv/)
+
+- create
+  - development
+    `wrangler kv:namespace create --preview <YOUR_NAMESPACE>`
+  - product
+    `wrangler kv:namespace create <YOUR_NAMESPACE>`
+- binding
+  - wrangler.toml
+  ```toml
+  kv_namespaces = [    { binding = "<YOUR_BINDING>", id = "<YOUR_ID>" }
+  ]
+  ```

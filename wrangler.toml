@@ -1,3 +1,4 @@
 name = "workers-visitors"
 main = "src/index.ts"
 compatibility_date = "2022-12-15"
+kv_namespaces = [{ binding = "view_couonter_DB", id = "5293048d76e6484e87cfec82a3a9751c", preview_id = "1f1eadfe30ca4b7784e8ad808765e43c" }]

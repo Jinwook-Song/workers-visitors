@@ -10,7 +10,7 @@
 
 export interface Env {
   // Example binding to KV. Learn more at https://developers.cloudflare.com/workers/runtime-apis/kv/
-  // MY_KV_NAMESPACE: KVNamespace;
+  view_couonter_DB: KVNamespace;
   //
   // Example binding to Durable Object. Learn more at https://developers.cloudflare.com/workers/runtime-apis/durable-objects/
   // MY_DURABLE_OBJECT: DurableObjectNamespace;
@@ -29,13 +29,14 @@ export default {
     ctx: ExecutionContext
   ): Promise<Response> {
     const url = new URL(request.url);
-    if (url.pathname === '/')
+    if (url.pathname === '/') {
+      await env.view_couonter_DB.put('hello', 'how are you?');
       return new Response(home, {
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
         },
       });
-    else
+    } else
       return new Response(null, {
         status: 404,
       });
