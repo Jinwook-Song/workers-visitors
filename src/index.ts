@@ -22,23 +22,62 @@ export interface Env {
 // @ts-ignore
 import home from './home.html';
 
+function handleHome() {
+  return new Response(home, {
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+    },
+  });
+}
+
+function handleNotFound() {
+  return new Response(null, {
+    status: 404,
+  });
+}
+
+function handleBadRequest() {
+  return new Response(null, {
+    status: 400,
+  });
+}
+
+async function handleVisit(searchParams: URLSearchParams, env: Env) {
+  const page = searchParams.get('page');
+  if (!page) return handleBadRequest();
+
+  const kvPage = await env.view_couonter_DB.get(page);
+  let visitCount = '1';
+
+  if (!kvPage) {
+    await env.view_couonter_DB.put(page, visitCount);
+  } else {
+    visitCount = (Number(kvPage) + 1).toString();
+    await env.view_couonter_DB.put(page, visitCount);
+  }
+
+  return new Response(JSON.stringify({ visits: +visitCount }), {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+}
+
 export default {
   async fetch(
     request: Request,
     env: Env,
     ctx: ExecutionContext
   ): Promise<Response> {
-    const url = new URL(request.url);
-    if (url.pathname === '/') {
-      await env.view_couonter_DB.put('hello', 'how are you?');
-      return new Response(home, {
-        headers: {
-          'Content-Type': 'text/html; charset=utf-8',
-        },
-      });
-    } else
-      return new Response(null, {
-        status: 404,
-      });
+    const { pathname, searchParams } = new URL(request.url);
+
+    switch (pathname) {
+      case '/':
+        return handleHome();
+      case '/visit':
+        return handleVisit(searchParams, env);
+      default:
+        return handleNotFound();
+    }
   },
 };
