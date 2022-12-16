@@ -21,6 +21,13 @@ export interface Env {
 
 // @ts-ignore
 import home from './home.html';
+import { makeBadge, makeStatusResponse } from './utils';
+
+const statusCodes = {
+  METHOD_NOT_ALLOWED: 405,
+  BAD_REQUEST: 400,
+  NOT_FOUND: 404,
+};
 
 function handleHome() {
   return new Response(home, {
@@ -32,33 +39,44 @@ function handleHome() {
 
 function handleNotFound() {
   return new Response(null, {
-    status: 404,
+    status: statusCodes.NOT_FOUND,
   });
 }
 
 function handleBadRequest() {
   return new Response(null, {
-    status: 400,
+    status: statusCodes.BAD_REQUEST,
   });
 }
 
 async function handleVisit(searchParams: URLSearchParams, env: Env) {
-  const page = searchParams.get('page');
-  if (!page) return handleBadRequest();
+  const username = searchParams.get('username');
+  if (!username || username === '$USERNAME') return handleBadRequest();
 
-  const kvPage = await env.view_couonter_DB.get(page);
+  const exists = await fetch(`https://api.github.com/users/${username}`, {
+    headers: {
+      'User-Agent': 'request',
+    },
+  });
+
+  if (exists.status === 404) return handleNotFound();
+
+  const hits = await env.view_couonter_DB.get(username);
   let visitCount = '1';
 
-  if (!kvPage) {
-    await env.view_couonter_DB.put(page, visitCount);
+  if (!hits) {
+    await env.view_couonter_DB.put(username, visitCount);
   } else {
-    visitCount = (Number(kvPage) + 1).toString();
-    await env.view_couonter_DB.put(page, visitCount);
+    visitCount = (Number(hits) + 1).toString();
+    await env.view_couonter_DB.put(username, visitCount);
   }
 
-  return new Response(JSON.stringify({ visits: +visitCount }), {
+  return new Response(makeBadge(+visitCount), {
     headers: {
-      'Content-Type': 'application/json',
+      'content-type': 'image/svg+xml;charset=utf-8',
+      // for githubs
+      'Cache-Control': 'no-cache',
+      ETag: `"${Date.now() + ''}"`,
     },
   });
 }
@@ -69,8 +87,12 @@ export default {
     env: Env,
     ctx: ExecutionContext
   ): Promise<Response> {
-    const { pathname, searchParams } = new URL(request.url);
+    const { url, method } = request;
+    if (method !== 'GET') {
+      return makeStatusResponse(statusCodes.METHOD_NOT_ALLOWED);
+    }
 
+    const { pathname, searchParams } = new URL(url);
     switch (pathname) {
       case '/':
         return handleHome();
