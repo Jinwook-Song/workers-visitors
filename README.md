@@ -1,7 +1,10 @@
-| 프로젝트 기간 | 22.12.16 ~                                       |
+# Github hits with Cloudflare workers
+
+| 프로젝트 기간 | 22.12.16 ~ 22.12.16                              |
 | ------------- | ------------------------------------------------ |
-| 프로젝트 목적 | cloudflare workers                               |
+| 프로젝트 목적 | github hits useing cloudflare workers (kv)       |
 | Github        | https://github.com/Jinwook-Song/workers-visitors |
+| Page          | https://workers-visitors.wlsdnr129.workers.dev/  |
 
 ---
 
@@ -90,3 +93,39 @@ export default {
   kv_namespaces = [    { binding = "<YOUR_BINDING>", id = "<YOUR_ID>" }
   ]
   ```
+
+### Github hits
+
+```tsx
+async function handleVisit(searchParams: URLSearchParams, env: Env) {
+  const username = searchParams.get('username');
+  if (!username || username === '$USERNAME') return handleBadRequest();
+
+  const exists = await fetch(`https://api.github.com/users/${username}`, {
+    headers: {
+      'User-Agent': 'request',
+    },
+  });
+
+  if (exists.status === 404) return handleNotFound();
+
+  const hits = await env.view_couonter_DB.get(username);
+  let visitCount = '1';
+
+  if (!hits) {
+    await env.view_couonter_DB.put(username, visitCount);
+  } else {
+    visitCount = (Number(hits) + 1).toString();
+    await env.view_couonter_DB.put(username, visitCount);
+  }
+
+  return new Response(makeBadge(+visitCount), {
+    headers: {
+      'content-type': 'image/svg+xml;charset=utf-8',
+      // for githubs
+      'Cache-Control': 'no-cache',
+      ETag: `"${Date.now() + ''}"`,
+    },
+  });
+}
+```
